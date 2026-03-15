@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>영주 선비숨결 스탬프 투어</title>
+    <title>영주 선비숨길 스탬프 투어</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --forest: #1B3A2A; --amber: #E8B84B; --cream: #F7F2E8; --gold: #C9972A; --warm: #8B7355; }
@@ -573,9 +573,9 @@
                 <source src="video_8229b9a3-678e-4192-a736-c757917fe6ca.mp4" type="video/mp4">
             </video>
             <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6)); display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center; pointer-events:none;">
-                <h1 style="font-family:'Noto Serif KR'; font-size:36px; font-weight:900;">영주 <span style="color:var(--amber)">선비숨결</span><br>스탬프 투어</h1>
+                <h1 style="font-family:'Noto Serif KR'; font-size:36px; font-weight:900;">영주 <span style="color:var(--amber)">선비숨길</span><br>스탬프 투어</h1>
                 <div style="margin-top:30px; background:rgba(232,184,75,0.15); border:1.5px solid var(--amber); padding:12px 25px; border-radius:12px;">
-                    <p style="color:var(--amber); font-weight:800; font-size:17px;">📜 선비숨결 스탬프 완성하여,<br>선비의 선물을 수령하시오!</p>
+                    <p style="color:var(--amber); font-weight:800; font-size:17px;">📜 선비숨길 스탬프 완성하여,<br>선비의 선물을 수령하시오!</p>
                 </div>
                 <div style="position:absolute; bottom:70px; width:100%;">
                     <p class="pulse" style="border:1px solid rgba(255,255,255,0.6); display:inline-block; padding:12px 35px; border-radius:30px; font-size:14px;">화면을 터치하여 시작하세요</p>
@@ -609,7 +609,7 @@
                     <ellipse cx="175" cy="22" rx="19" ry="6" fill="white"/>
                 </g>
             </svg>
-            <h1><span class="ko-title">선비숨결</span> <span class="en-title">Stamp Tour</span></h1>
+            <h1><span class="ko-title">선비숨길</span> <span class="en-title">Stamp Tour</span></h1>
             <p>소수서원부터 선비세상까지<br>5곳의 거점을 방문하고 스탬프를 완성하세요!</p>
         </div>
 
@@ -733,7 +733,7 @@
 
             <!-- 타이틀 -->
             <div class="complete-title">
-                <span>선비숨결 스탬프투어</span>
+                <span>선비숨길 스탬프투어</span>
                 완주 달성!
             </div>
             <p class="complete-subtitle">5곳의 거점을 모두 방문하셨습니다</p>
@@ -825,6 +825,25 @@
 </div>
 
 <script>
+    /* ── Google Sheets 연동 ── */
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz7pix1InQntv_wsBH7B80euBseaFE6gW19NQmbO1jZTEaJEbIelP7f5j_i6OAKhm1-LQ/exec';
+
+    function sendToSheet(event, extra) {
+        const user = JSON.parse(localStorage.getItem('seonbi_user') || '{}');
+        const data = {
+            name: user.name || '',
+            phone: user.phone || '',
+            event: event,
+            certNumber: extra || ''
+        };
+        fetch(SHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).catch(() => {});
+    }
+
     function goTo(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -882,10 +901,12 @@
             localStorage.removeItem('seonbi_stamps');
             localStorage.removeItem('seonbi_cert_' + prev.phone);
             localStorage.removeItem('seonbi_gift_claimed');
+            localStorage.removeItem('seonbi_complete_sent');
             stamps = [];
         }
 
         localStorage.setItem('seonbi_user', JSON.stringify({ name, phone }));
+        sendToSheet('투어시작');
         goTo('page-stamp');
     }
 
@@ -918,6 +939,7 @@
         if (stamps.includes(n)) { alert('이미 인증된 거점입니다! 📌'); return; }
         stamps.push(n);
         localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
+        sendToSheet('스탬프인증', siteNames[n - 1]);
         loadStamps();
         drawPaths();
         showStampSuccess(siteNames[n - 1]);
@@ -948,6 +970,12 @@
         document.getElementById('certName').textContent = name + ' 선비님';
         document.getElementById('certNumber').textContent = cert;
         document.getElementById('certDate').textContent = '완주일시: ' + dateStr;
+
+        // 완주 시트 전송 (최초 1회만)
+        if (!localStorage.getItem('seonbi_complete_sent')) {
+            sendToSheet('완주', cert);
+            localStorage.setItem('seonbi_complete_sent', 'yes');
+        }
 
         // 수령 완료 상태 복원
         if (localStorage.getItem('seonbi_gift_claimed') === 'yes') {
