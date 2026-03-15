@@ -617,6 +617,8 @@
             box-shadow: 0 4px 16px rgba(201,151,42,0.35);
         }
     </style>
+    <!-- jsQR 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -900,26 +902,28 @@
     function tryPlayVideo(video) {
         if (!video) return;
         video.muted = true;
-        const promise = video.play();
-        if (promise !== undefined) {
-            promise.catch(() => {});
-        }
+        const p = video.play();
+        if (p !== undefined) p.catch(() => {});
     }
 
-    // 페이지 로드 시 2페이지 영상 미리 준비
     window.addEventListener('load', () => {
-        const video = document.getElementById('shared-video');
-        if (video) { video.muted = true; video.load(); }
+        const v1 = document.getElementById('page1-video');
+        const v2 = document.getElementById('shared-video');
+        if (v1) tryPlayVideo(v1);
+        if (v2) tryPlayVideo(v2);
     });
 
-    // 첫 터치 시 영상 재생 시도 (크롬 정책 우회)
-    document.addEventListener('touchstart', function resumeVideo() {
-        const video = document.getElementById('shared-video');
-        if (video && video.paused) { video.muted = true; video.play().catch(() => {}); }
+    document.addEventListener('touchstart', function() {
+        ['page1-video','shared-video'].forEach(id => {
+            const v = document.getElementById(id);
+            if (v && v.paused) tryPlayVideo(v);
+        });
     }, { passive: true });
-    document.addEventListener('click', function resumeVideoClick() {
-        const video = document.getElementById('shared-video');
-        if (video && video.paused) { video.muted = true; video.play().catch(() => {}); }
+    document.addEventListener('click', function() {
+        ['page1-video','shared-video'].forEach(id => {
+            const v = document.getElementById(id);
+            if (v && v.paused) tryPlayVideo(v);
+        });
     });
 
     function togglePrivacy() {
@@ -1016,18 +1020,21 @@
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (typeof jsQR === 'undefined') {
+                // jsQR 미로드 시 상태 표시
+                document.getElementById('qrStatus').textContent = 'QR 라이브러리 로딩 중...';
+                qrAnimFrame = requestAnimationFrame(scanQR);
+                return;
+            }
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, imageData.width, imageData.height);
             if (code) {
-                // QR 내용 무관하게 현재 거점 인증 처리
                 closeQR();
                 stamps.push(qrCurrentSite);
                 localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
                 loadStamps();
                 drawPaths();
-                setTimeout(() => {
-                    showStampSuccess(siteNames[qrCurrentSite - 1]);
-                }, 200);
+                setTimeout(() => { showStampSuccess(siteNames[qrCurrentSite - 1]); }, 200);
                 return;
             }
         }
@@ -1194,9 +1201,6 @@
             </div>
         </div>
     </div>
-    <!-- jsQR 라이브러리 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
-
     <!-- QR 스캐너 모달 -->
     <div class="qr-modal-overlay" id="qrModal">
         <div class="qr-header">
