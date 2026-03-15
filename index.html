@@ -565,47 +565,38 @@
             display: none; position: fixed; inset: 0; z-index: 200;
             background: rgba(0,0,0,0.92);
             flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: none;
         }
-        .qr-modal-overlay.show { display: flex; }
+        .qr-modal-overlay.show { display: flex; pointer-events: all; }
         .qr-header {
             color: white; font-size: 17px; font-weight: 900;
             font-family: 'Noto Serif KR', serif;
             margin-bottom: 16px; text-align: center; line-height: 1.5;
         }
         .qr-header span { color: #E8B84B; display: block; font-size: 13px; font-weight: 400; margin-top: 4px; }
-        .qr-video-wrap {
-            position: relative; width: 280px; height: 280px;
-            border-radius: 20px; overflow: hidden;
-            box-shadow: 0 0 0 4px rgba(232,184,75,0.6);
+        #qr-reader {
+            width: 300px !important;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 3px solid rgba(232,184,75,0.6) !important;
         }
-        #qr-video {
-            width: 100%; height: 100%; object-fit: cover; display: block;
+        #qr-reader video { border-radius: 14px; }
+        #qr-reader img { display: none !important; }
+        #qr-reader__scan_region { background: transparent !important; }
+        #qr-reader__dashboard { background: rgba(0,0,0,0.6) !important; padding: 8px !important; }
+        #qr-reader__dashboard_section_csr button {
+            background: linear-gradient(135deg, #E8B84B, #C9972A) !important;
+            color: #1B3A2A !important; border: none !important;
+            border-radius: 8px !important; padding: 8px 16px !important;
+            font-weight: 700 !important; cursor: pointer !important;
         }
-        /* 스캔 가이드 라인 */
-        .qr-guide {
-            position: absolute; inset: 0; pointer-events: none;
-        }
-        .qr-guide::before {
-            content: '';
-            position: absolute; inset: 20px;
-            border: 2px solid rgba(232,184,75,0.8);
-            border-radius: 8px;
-        }
-        @keyframes scanLine {
-            0% { top: 20px; } 100% { top: calc(100% - 20px); }
-        }
-        .qr-scan-line {
-            position: absolute; left: 20px; right: 20px; height: 2px;
-            background: linear-gradient(90deg, transparent, #E8B84B, transparent);
-            animation: scanLine 2s linear infinite;
-            box-shadow: 0 0 8px rgba(232,184,75,0.8);
-        }
+        #qr-reader__status_span { color: rgba(255,255,255,0.8) !important; font-size: 12px !important; }
         .qr-status {
             color: rgba(255,255,255,0.7); font-size: 13px;
-            margin-top: 14px; text-align: center; min-height: 20px;
+            margin-top: 12px; text-align: center; min-height: 20px;
         }
         .qr-close-btn {
-            margin-top: 20px; padding: 14px 40px;
+            margin-top: 16px; padding: 14px 40px;
             border-radius: 30px; border: 1.5px solid rgba(255,255,255,0.3);
             background: transparent; color: white;
             font-size: 15px; font-weight: 700; cursor: pointer;
@@ -962,17 +953,9 @@
         if (gauge) gauge.style.width = (count / 5 * 100) + '%';
     }
 
-    /* ── QR 스캐너 ── */
+    /* ── QR 스캐너 (html5-qrcode) ── */
     let qrCurrentSite = 0;
-    let qrStream = null;
-    let qrAnimFrame = null;
-    const QR_CODES = {
-        'SEONBI_STAMP_1': 1,
-        'SEONBI_STAMP_2': 2,
-        'SEONBI_STAMP_3': 3,
-        'SEONBI_STAMP_4': 4,
-        'SEONBI_STAMP_5': 5,
-    };
+    let html5QrCode = null;
     const siteNames = ['소수서원','소수박물관','선비촌','선비문화수련원','선비세상'];
 
     function stampSite(n) {
@@ -984,123 +967,44 @@
     }
 
     function openQR() {
-        const modal = document.getElementById('qrModal');
-        modal.classList.add('show');
-        const video = document.getElementById('qr-video');
-        const status = document.getElementById('qrStatus');
+        document.getElementById('qrModal').classList.add('show');
+        document.getElementById('qrStatus').textContent = '카메라 시작 중...';
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            status.textContent = '❌ 이 브라우저는 카메라를 지원하지 않습니다';
-            return;
+        if (html5QrCode) {
+            html5QrCode.stop().catch(() => {}).finally(() => startScanner());
+        } else {
+            startScanner();
         }
+    }
 
-        status.textContent = '카메라 시작 중...';
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
-        }).then(stream => {
-            qrStream = stream;
-            video.srcObject = stream;
-            video.play();
-
-            if ('BarcodeDetector' in window) {
-                status.textContent = '📷 QR코드를 화면에 비춰주세요 (네이티브)';
-                scanWithBarcodeDetector(video);
-            } else if (typeof jsQR !== 'undefined') {
-                status.textContent = '📷 QR코드를 화면에 비춰주세요 (jsQR)';
-                requestAnimationFrame(scanQR);
-            } else {
-                status.textContent = '⏳ QR 라이브러리 로딩 대기 중...';
-                // jsQR 로드될 때까지 대기
-                let waitCount = 0;
-                const waitJsQR = setInterval(() => {
-                    waitCount++;
-                    if (typeof jsQR !== 'undefined') {
-                        clearInterval(waitJsQR);
-                        status.textContent = '📷 QR코드를 화면에 비춰주세요';
-                        requestAnimationFrame(scanQR);
-                    } else if (waitCount > 30) {
-                        clearInterval(waitJsQR);
-                        status.textContent = '❌ QR 라이브러리 로드 실패. 인터넷 연결을 확인하세요.';
-                    }
-                }, 200);
-            }
+    function startScanner() {
+        html5QrCode = new Html5Qrcode('qr-reader');
+        html5QrCode.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+            (decodedText) => {
+                // QR 인식 성공 → 거점 인증
+                html5QrCode.stop().catch(() => {});
+                document.getElementById('qrModal').classList.remove('show');
+                stamps.push(qrCurrentSite);
+                localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
+                loadStamps();
+                drawPaths();
+                setTimeout(() => showStampSuccess(siteNames[qrCurrentSite - 1]), 200);
+            },
+            () => {} // 인식 중 오류는 무시
+        ).then(() => {
+            document.getElementById('qrStatus').textContent = '📷 QR코드를 네모 안에 맞춰주세요';
         }).catch(err => {
-            status.textContent = '❌ 카메라 오류: ' + err.message;
+            document.getElementById('qrStatus').textContent = '❌ 카메라 오류: ' + err;
         });
-    }
-
-    // ── 방법 1: BarcodeDetector (크롬/삼성 브라우저 네이티브) ──
-    let barcodeDetector = null;
-    function scanWithBarcodeDetector(video) {
-        if (!qrStream) return;
-        if (!barcodeDetector) {
-            barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-        }
-        barcodeDetector.detect(video).then(codes => {
-            if (codes.length > 0) {
-                closeQR();
-                stamps.push(qrCurrentSite);
-                localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
-                loadStamps();
-                drawPaths();
-                setTimeout(() => showStampSuccess(siteNames[qrCurrentSite - 1]), 200);
-            } else {
-                qrAnimFrame = setTimeout(() => scanWithBarcodeDetector(video), 300);
-            }
-        }).catch(() => {
-            // BarcodeDetector 실패 시 jsQR fallback
-            document.getElementById('qrStatus').textContent = '📷 QR코드를 화면에 비춰주세요 (jsQR)';
-            requestAnimationFrame(scanQR);
-        });
-    }
-
-    // ── 방법 2: jsQR fallback ──
-    function scanQR() {
-        const video = document.getElementById('qr-video');
-        if (!qrStream) return;
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) {
-                closeQR();
-                stamps.push(qrCurrentSite);
-                localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
-                loadStamps();
-                drawPaths();
-                setTimeout(() => showStampSuccess(siteNames[qrCurrentSite - 1]), 200);
-                return;
-            }
-        }
-        qrAnimFrame = requestAnimationFrame(scanQR);
-    }
-
-    function showStampSuccess(name) {
-        document.getElementById('successSiteName').textContent = name;
-        document.getElementById('stampSuccessOverlay').classList.add('show');
-    }
-
-    function closeStampSuccess() {
-        document.getElementById('stampSuccessOverlay').classList.remove('show');
     }
 
     function closeQR() {
         document.getElementById('qrModal').classList.remove('show');
-        if (qrStream) {
-            qrStream.getTracks().forEach(t => t.stop());
-            qrStream = null;
+        if (html5QrCode) {
+            html5QrCode.stop().catch(() => {});
         }
-        if (qrAnimFrame) {
-            cancelAnimationFrame(qrAnimFrame);
-            clearTimeout(qrAnimFrame);
-            qrAnimFrame = null;
-        }
-        const video = document.getElementById('qr-video');
-        video.srcObject = null;
     }
 
     /* ── 완주 페이지 ── */
@@ -1245,8 +1149,8 @@
             </div>
         </div>
     </div>
-    <!-- jsQR 라이브러리 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+    <!-- html5-qrcode 라이브러리 (인식률 높음) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <!-- QR 스캐너 모달 -->
     <div class="qr-modal-overlay" id="qrModal">
@@ -1254,12 +1158,7 @@
             QR 코드를 스캔하세요
             <span id="qrSiteName">스탬프 인증</span>
         </div>
-        <div class="qr-video-wrap">
-            <video id="qr-video" autoplay playsinline muted></video>
-            <div class="qr-guide">
-                <div class="qr-scan-line"></div>
-            </div>
-        </div>
+        <div id="qr-reader"></div>
         <div class="qr-status" id="qrStatus">카메라를 QR 코드에 가져다 대세요</div>
         <button class="qr-close-btn" onclick="closeQR()">✕ 닫기</button>
     </div>
