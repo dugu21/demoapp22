@@ -476,14 +476,45 @@
             text-align: center; margin-top: 10px;
             animation: fadeUp 0.5s ease 0.9s both;
         }
+        /* 스탬프 인증 완료 팝업 */
+        .stamp-success-overlay {
+            display: none; position: fixed; inset: 0; z-index: 300;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+        .stamp-success-overlay.show { display: flex; pointer-events: all; }
+        .stamp-success-box {
+            background: white; border-radius: 24px;
+            padding: 36px 28px; text-align: center;
+            width: calc(100% - 60px); max-width: 320px;
+            animation: starPop 0.35s cubic-bezier(.4,0,.2,1) forwards;
+        }
+        .stamp-success-icon { font-size: 64px; margin-bottom: 12px; }
+        .stamp-success-title {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 20px; font-weight: 900; color: #1B3A2A; margin-bottom: 6px;
+        }
+        .stamp-success-name {
+            font-size: 16px; font-weight: 700; color: #C9972A; margin-bottom: 16px;
+        }
+        .stamp-success-desc {
+            font-size: 13px; color: #7a9a90; line-height: 1.6; margin-bottom: 22px;
+        }
+        .stamp-success-btn {
+            width: 100%; padding: 15px; border: none; border-radius: 14px;
+            background: linear-gradient(135deg, #E8B84B, #C9972A);
+            color: #1B3A2A; font-size: 16px; font-weight: 900;
+            font-family: 'Noto Serif KR', serif; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(201,151,42,0.35);
+        }
         /* 직원 확인 코드 모달 */
         .staff-modal-overlay {
             display: none; position: fixed; inset: 0; z-index: 100;
             background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
             align-items: center; justify-content: center;
-            pointer-events: none;
         }
-        .staff-modal-overlay.show { display: flex; pointer-events: all; }
+        .staff-modal-overlay.show { display: flex; }
         .staff-modal {
             background: #1e3d2e; border: 1.5px solid rgba(232,184,75,0.4);
             border-radius: 22px; padding: 28px 24px;
@@ -534,9 +565,8 @@
             display: none; position: fixed; inset: 0; z-index: 200;
             background: rgba(0,0,0,0.92);
             flex-direction: column; align-items: center; justify-content: center;
-            pointer-events: none;
         }
-        .qr-modal-overlay.show { display: flex; pointer-events: all; }
+        .qr-modal-overlay.show { display: flex; }
         .qr-header {
             color: white; font-size: 17px; font-weight: 900;
             font-family: 'Noto Serif KR', serif;
@@ -581,54 +611,15 @@
             font-size: 15px; font-weight: 700; cursor: pointer;
             font-family: 'Noto Sans KR', sans-serif;
         }
-        /* 스탬프 인증 완료 팝업 */
-        .stamp-success-overlay {
-            display: none; position: fixed; inset: 0; z-index: 300;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-            align-items: center; justify-content: center;
-            pointer-events: none;
-        }
-        .stamp-success-overlay.show { display: flex; pointer-events: all; }
-        .stamp-success-box {
-            background: white; border-radius: 24px;
-            padding: 36px 28px; text-align: center;
-            width: calc(100% - 60px); max-width: 320px;
-            animation: starPop 0.35s cubic-bezier(.4,0,.2,1) forwards;
-        }
-        .stamp-success-icon { font-size: 64px; margin-bottom: 12px; }
-        .stamp-success-title {
-            font-family: 'Noto Serif KR', serif;
-            font-size: 20px; font-weight: 900; color: #1B3A2A;
-            margin-bottom: 6px;
-        }
-        .stamp-success-name {
-            font-size: 16px; font-weight: 700; color: #C9972A;
-            margin-bottom: 16px;
-        }
-        .stamp-success-desc {
-            font-size: 13px; color: #7a9a90; line-height: 1.6;
-            margin-bottom: 22px;
-        }
-        .stamp-success-btn {
-            width: 100%; padding: 15px; border: none; border-radius: 14px;
-            background: linear-gradient(135deg, #E8B84B, #C9972A);
-            color: #1B3A2A; font-size: 16px; font-weight: 900;
-            font-family: 'Noto Serif KR', serif; cursor: pointer;
-            box-shadow: 0 4px 16px rgba(201,151,42,0.35);
-        }
     </style>
-    <!-- jsQR 라이브러리 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 </head>
 <body>
 <div class="app">
 
-    <!-- 첫 번째 페이지: 영상 배경 -->
+    <!-- 첫 번째 페이지: 이미지 배경 -->
     <div class="page active" id="page-slider" onclick="goTo('page-auth')">
         <div style="width:100%; height:100%; position:relative; overflow:hidden;">
-            <video autoplay muted loop playsinline preload="auto" id="page1-video" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
-                <source src="video_8229b9a3-678e-4192-a736-c757917fe6ca.mp4" type="video/mp4">
-            </video>
+            <img src="Gemini_Generated_Image_ee5jp0ee5jp0ee5j.png" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
             <!-- autoplay 차단 시 폴백 오버레이 -->
             <div id="video-play-overlay" style="display:none; position:absolute; inset:0; z-index:5; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; flex-direction:column; gap:12px;">
                 <div style="font-size:60px;">▶️</div>
@@ -902,28 +893,26 @@
     function tryPlayVideo(video) {
         if (!video) return;
         video.muted = true;
-        const p = video.play();
-        if (p !== undefined) p.catch(() => {});
+        const promise = video.play();
+        if (promise !== undefined) {
+            promise.catch(() => {});
+        }
     }
 
+    // 페이지 로드 시 2페이지 영상 미리 준비
     window.addEventListener('load', () => {
-        const v1 = document.getElementById('page1-video');
-        const v2 = document.getElementById('shared-video');
-        if (v1) tryPlayVideo(v1);
-        if (v2) tryPlayVideo(v2);
+        const video = document.getElementById('shared-video');
+        if (video) { video.muted = true; video.load(); }
     });
 
-    document.addEventListener('touchstart', function() {
-        ['page1-video','shared-video'].forEach(id => {
-            const v = document.getElementById(id);
-            if (v && v.paused) tryPlayVideo(v);
-        });
+    // 첫 터치 시 영상 재생 시도 (크롬 정책 우회)
+    document.addEventListener('touchstart', function resumeVideo() {
+        const video = document.getElementById('shared-video');
+        if (video && video.paused) { video.muted = true; video.play().catch(() => {}); }
     }, { passive: true });
-    document.addEventListener('click', function() {
-        ['page1-video','shared-video'].forEach(id => {
-            const v = document.getElementById(id);
-            if (v && v.paused) tryPlayVideo(v);
-        });
+    document.addEventListener('click', function resumeVideoClick() {
+        const video = document.getElementById('shared-video');
+        if (video && video.paused) { video.muted = true; video.play().catch(() => {}); }
     });
 
     function togglePrivacy() {
@@ -1021,8 +1010,6 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             if (typeof jsQR === 'undefined') {
-                // jsQR 미로드 시 상태 표시
-                document.getElementById('qrStatus').textContent = 'QR 라이브러리 로딩 중...';
                 qrAnimFrame = requestAnimationFrame(scanQR);
                 return;
             }
@@ -1034,7 +1021,7 @@
                 localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
                 loadStamps();
                 drawPaths();
-                setTimeout(() => { showStampSuccess(siteNames[qrCurrentSite - 1]); }, 200);
+                setTimeout(() => showStampSuccess(siteNames[qrCurrentSite - 1]), 200);
                 return;
             }
         }
@@ -1049,6 +1036,8 @@
     function closeStampSuccess() {
         document.getElementById('stampSuccessOverlay').classList.remove('show');
     }
+
+    function closeQR() {
         document.getElementById('qrModal').classList.remove('show');
         if (qrStream) {
             qrStream.getTracks().forEach(t => t.stop());
@@ -1201,6 +1190,9 @@
             </div>
         </div>
     </div>
+    <!-- jsQR 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+
     <!-- QR 스캐너 모달 -->
     <div class="qr-modal-overlay" id="qrModal">
         <div class="qr-header">
