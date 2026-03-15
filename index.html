@@ -825,25 +825,6 @@
 </div>
 
 <script>
-    /* ── Google Sheets 연동 ── */
-    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz7pix1InQntv_wsBH7B80euBseaFE6gW19NQmbO1jZTEaJEbIelP7f5j_i6OAKhm1-LQ/exec';
-
-    function sendToSheet(event, extra) {
-        const user = JSON.parse(localStorage.getItem('seonbi_user') || '{}');
-        const data = {
-            name: user.name || '',
-            phone: user.phone || '',
-            event: event,
-            certNumber: extra || ''
-        };
-        fetch(SHEET_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        }).catch(() => {});
-    }
-
     function goTo(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -901,12 +882,10 @@
             localStorage.removeItem('seonbi_stamps');
             localStorage.removeItem('seonbi_cert_' + prev.phone);
             localStorage.removeItem('seonbi_gift_claimed');
-            localStorage.removeItem('seonbi_complete_sent');
             stamps = [];
         }
 
         localStorage.setItem('seonbi_user', JSON.stringify({ name, phone }));
-        sendToSheet('투어시작');
         goTo('page-stamp');
     }
 
@@ -939,7 +918,6 @@
         if (stamps.includes(n)) { alert('이미 인증된 거점입니다! 📌'); return; }
         stamps.push(n);
         localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
-        sendToSheet('스탬프인증', siteNames[n - 1]);
         loadStamps();
         drawPaths();
         showStampSuccess(siteNames[n - 1]);
@@ -970,12 +948,6 @@
         document.getElementById('certName').textContent = name + ' 선비님';
         document.getElementById('certNumber').textContent = cert;
         document.getElementById('certDate').textContent = '완주일시: ' + dateStr;
-
-        // 완주 시트 전송 (최초 1회만)
-        if (!localStorage.getItem('seonbi_complete_sent')) {
-            sendToSheet('완주', cert);
-            localStorage.setItem('seonbi_complete_sent', 'yes');
-        }
 
         // 수령 완료 상태 복원
         if (localStorage.getItem('seonbi_gift_claimed') === 'yes') {
