@@ -969,12 +969,28 @@
     function openQR() {
         document.getElementById('qrModal').classList.add('show');
         document.getElementById('qrStatus').textContent = '카메라 시작 중...';
-        // 이전 인스턴스 완전 제거 후 새로 생성
-        closeQR().finally(() => startScanner());
+        // 이전 인스턴스만 정리 (모달은 닫지 않음)
+        cleanupScanner().finally(() => startScanner());
+    }
+
+    function cleanupScanner() {
+        if (html5QrCode) {
+            const instance = html5QrCode;
+            html5QrCode = null;
+            return instance.stop().then(() => {
+                try { instance.clear(); } catch(e) {}
+                const readerEl = document.getElementById('qr-reader');
+                if (readerEl) readerEl.innerHTML = '';
+            }).catch(() => {
+                try { instance.clear(); } catch(e) {}
+                const readerEl = document.getElementById('qr-reader');
+                if (readerEl) readerEl.innerHTML = '';
+            });
+        }
+        return Promise.resolve();
     }
 
     function startScanner() {
-        // qr-reader div 초기화
         const readerEl = document.getElementById('qr-reader');
         readerEl.innerHTML = '';
         html5QrCode = new Html5Qrcode('qr-reader');
@@ -1000,14 +1016,7 @@
 
     function closeQR() {
         document.getElementById('qrModal').classList.remove('show');
-        if (html5QrCode) {
-            const instance = html5QrCode;
-            html5QrCode = null;
-            return instance.stop().then(() => instance.clear()).catch(() => {
-                try { instance.clear(); } catch(e) {}
-            });
-        }
-        return Promise.resolve();
+        return cleanupScanner();
     }
 
     /* ── 완주 페이지 ── */
