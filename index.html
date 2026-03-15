@@ -969,30 +969,28 @@
     function openQR() {
         document.getElementById('qrModal').classList.add('show');
         document.getElementById('qrStatus').textContent = '카메라 시작 중...';
-
-        if (html5QrCode) {
-            html5QrCode.stop().catch(() => {}).finally(() => startScanner());
-        } else {
-            startScanner();
-        }
+        // 이전 인스턴스 완전 제거 후 새로 생성
+        closeQR().finally(() => startScanner());
     }
 
     function startScanner() {
+        // qr-reader div 초기화
+        const readerEl = document.getElementById('qr-reader');
+        readerEl.innerHTML = '';
         html5QrCode = new Html5Qrcode('qr-reader');
         html5QrCode.start(
             { facingMode: 'environment' },
             { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
             (decodedText) => {
-                // QR 인식 성공 → 거점 인증
-                html5QrCode.stop().catch(() => {});
-                document.getElementById('qrModal').classList.remove('show');
-                stamps.push(qrCurrentSite);
-                localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
-                loadStamps();
-                drawPaths();
-                setTimeout(() => showStampSuccess(siteNames[qrCurrentSite - 1]), 200);
+                closeQR().finally(() => {
+                    stamps.push(qrCurrentSite);
+                    localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
+                    loadStamps();
+                    drawPaths();
+                    setTimeout(() => showStampSuccess(siteNames[qrCurrentSite - 1]), 200);
+                });
             },
-            () => {} // 인식 중 오류는 무시
+            () => {}
         ).then(() => {
             document.getElementById('qrStatus').textContent = '📷 QR코드를 네모 안에 맞춰주세요';
         }).catch(err => {
@@ -1003,8 +1001,13 @@
     function closeQR() {
         document.getElementById('qrModal').classList.remove('show');
         if (html5QrCode) {
-            html5QrCode.stop().catch(() => {});
+            const instance = html5QrCode;
+            html5QrCode = null;
+            return instance.stop().then(() => instance.clear()).catch(() => {
+                try { instance.clear(); } catch(e) {}
+            });
         }
+        return Promise.resolve();
     }
 
     /* ── 완주 페이지 ── */
